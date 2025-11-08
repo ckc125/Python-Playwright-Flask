@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>网页截图和录屏工具</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+        
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+        
+        .content {
+            padding: 40px;
+        }
+        
+        .form-group {
+            margin-bottom: 25px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+        }
+        
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e1e5e9;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+        
+        .form-group input:focus, .form-group select:focus {
+            outline: none;
+            border-color: #4facfe;
+        }
+        
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .checkbox-group input {
+            width: auto;
+        }
+        
+        .button-group {
+            display: flex;
+            gap: 15px;
+            margin-top: 30px;
+        }
+        
+        .btn {
+            flex: 1;
+            padding: 15px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+        }
+        
+        .btn-screenshot {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        
+        .btn-record {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+        }
+        
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .result {
+            margin-top: 30px;
+            padding: 20px;
+            border-radius: 8px;
+            display: none;
+        }
+        
+        .result.success {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+        
+        .result.error {
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+        
+        .result-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .download-btn {
+            background: #28a745;
+            color: white;
+            padding: 8px 15px;
+            border-radius: 5px;
+            text-decoration: none;
+            font-size: 14px;
+        }
+        
+        .loading {
+            display: none;
+            text-align: center;
+            margin: 20px 0;
+        }
+        
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .footer {
+            text-align: center;
+            margin-top: 30px;
+            color: #666;
+            font-size: 14px;
+        }
+        
+        @media (max-width: 600px) {
+            .button-group {
+                flex-direction: column;
+            }
+            
+            .header h1 {
+                font-size: 2em;
+            }
+            
+            .content {
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🌐 网页截图和录屏工具</h1>
+            <p>轻松截取网页截图或录制网页视频</p>
+        </div>
+        
+        <div class="content">
+            <div class="form-group">
+                <label for="url">网页地址 (URL):</label>
+                <input type="url" id="url" placeholder="https://example.com" required>
+            </div>
+            
+            <div class="form-group">
+                <div class="checkbox-group">
+                    <input type="checkbox" id="fullPage" checked>
+                    <label for="fullPage">截取完整页面（滚动截图）</label>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label for="width">自定义宽度 (像素):</label>
+                <input type="number" id="width" placeholder="1920" min="800" max="3840" value="1920">
+            </div>
+            
+            <div class="form-group">
+                <label for="format">截图格式:</label>
+                <select id="format">
+                    <option value="png" selected>PNG (高质量)</option>
+                    <option value="jpg">JPG (压缩格式)</option>
+                    <option value="pdf">PDF (文档格式)</option>
+                    <option value="gif">GIF (动态格式)</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="duration">录制时长 (秒):</label>
+                <select id="duration">
+                    <option value="5">5秒</option>
+                    <option value="10" selected>10秒</option>
+                    <option value="15">15秒</option>
+                    <option value="30">30秒</option>
+                    <option value="60">60秒</option>
+                </select>
+            </div>
+            
+            <div class="loading" id="loading">
+                <div class="spinner"></div>
+                <p id="loadingText">正在处理中...</p>
+            </div>
+            
+            <div class="button-group">
+                <button class="btn btn-screenshot" onclick="takeScreenshot()" id="screenshotBtn">
+                    📸 截图网页
+                </button>
+                <button class="btn btn-record" onclick="recordVideo()" id="recordBtn">
+                    🎥 录制视频
+                </button>
+            </div>
+            
+            <div class="result" id="result">
+                <div class="result-content">
+                    <span id="resultMessage"></span>
+                    <a href="#" id="downloadLink" class="download-btn" style="display: none;">下载</a>
+                </div>
+            </div>
+        </div>
+        
+        <div class="footer">
+            <p>使用 Python + Playwright + Flask 构建</p>
+        </div>
+    </div>
+
+    <script>
+        function showLoading(text) {
+            document.getElementById('loadingText').textContent = text;
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('screenshotBtn').disabled = true;
+            document.getElementById('recordBtn').disabled = true;
+        }
+        
+        function hideLoading() {
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('screenshotBtn').disabled = false;
+            document.getElementById('recordBtn').disabled = false;
+        }
+        
+        function showResult(message, type, downloadUrl = null) {
+            const result = document.getElementById('result');
+            const resultMessage = document.getElementById('resultMessage');
+            const downloadLink = document.getElementById('downloadLink');
+            
+            result.className = 'result ' + type;
+            resultMessage.textContent = message;
+            
+            if (downloadUrl) {
+                downloadLink.href = downloadUrl;
+                downloadLink.style.display = 'inline-block';
+            } else {
+                downloadLink.style.display = 'none';
+            }
+            
+            result.style.display = 'block';
+        }
+        
+        async function takeScreenshot() {
+            const url = document.getElementById('url').value;
+            const fullPage = document.getElementById('fullPage').checked;
+            const width = parseInt(document.getElementById('width').value);
+            const format = document.getElementById('format').value;
+            
+            if (!url) {
+                showResult('请输入有效的网页地址', 'error');
+                return;
+            }
+            
+            if (width < 800 || width > 3840) {
+                showResult('宽度必须在800-3840像素之间', 'error');
+                return;
+            }
+            
+            showLoading('正在截图中...');
+            
+            try {
+                const response = await fetch('/screenshot', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        url: url,
+                        full_page: fullPage,
+                        width: width,
+                        format: format
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showResult('截图成功！', 'success', data.download_url);
+                } else {
+                    showResult('截图失败: ' + data.error, 'error');
+                }
+            } catch (error) {
+                showResult('网络错误: ' + error.message, 'error');
+            } finally {
+                hideLoading();
+            }
+        }
+        
+        async function recordVideo() {
+            const url = document.getElementById('url').value;
+            const duration = parseInt(document.getElementById('duration').value);
+            
+            if (!url) {
+                showResult('请输入有效的网页地址', 'error');
+                return;
+            }
+            
+            if (duration > 60) {
+                showResult('录制时长不能超过60秒', 'error');
+                return;
+            }
+            
+            showLoading('正在录制视频...（这可能需要一些时间）');
+            
+            try {
+                const response = await fetch('/record', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        url: url,
+                        duration: duration
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showResult('视频录制成功！', 'success', data.download_url);
+                } else {
+                    showResult('录制失败: ' + data.error, 'error');
+                }
+            } catch (error) {
+                showResult('网络错误: ' + error.message, 'error');
+            } finally {
+                hideLoading();
+            }
+        }
+        
+        // 回车键支持
+        document.getElementById('url').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                takeScreenshot();
+            }
+        });
+    </script>
+</body>
+</html>
